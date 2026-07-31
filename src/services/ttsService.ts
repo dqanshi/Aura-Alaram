@@ -1,15 +1,56 @@
+/**
+ * ttsService.ts
+ *
+ * On Android (Capacitor native app) we call the custom TTSPlugin we registered
+ * in MainActivity.java — it uses Android's built-in TextToSpeech engine, which
+ * works 100 % offline and never silently fails in a WebView the way the
+ * Web Speech API often does.
+ *
+ * On the web / browser preview we fall back to window.speechSynthesis as before.
+ */
+
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+// ── Native plugin interface ──────────────────────────────────────────────────
+
+interface NativeTTSPlugin {
+  speak(options: { text: string; pitch?: number; rate?: number }): Promise<void>;
+  stop(): Promise<void>;
+  isSupported(): Promise<{ supported: boolean }>;
+  addListener(
+    event: 'ttsCompleted',
+    listener: () => void
+  ): Promise<{ remove: () => void }>;
+}
+
+// registerPlugin returns a no-op object on web, so it is safe to call always.
+const NativeTTS = registerPlugin<NativeTTSPlugin>('TTSPlugin');
+
+const IS_NATIVE = Capacitor.isNativePlatform();
+
+// ── TTS Service ──────────────────────────────────────────────────────────────
+
 class TTSService {
-  private synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
+  // Web Speech API fields (used only on browser)
+  private synth: SpeechSynthesis | null =
+    !IS_NATIVE && typeof window !== 'undefined' ? window.speechSynthesis : null;
   private voices: SpeechSynthesisVoice[] = [];
+
+  // Shared looping state
   private isLooping = false;
   private loopTimeout: number | null = null;
+  private nativeLoopListener: { remove: () => void } | null = null;
 
   constructor() {
-    this.loadVoices();
-    if (this.synth && 'onvoiceschanged' in this.synth) {
-      this.synth.onvoiceschanged = () => this.loadVoices();
+    if (!IS_NATIVE) {
+      this.loadVoices();
+      if (this.synth && 'onvoiceschanged' in this.synth) {
+        this.synth.onvoiceschanged = () => this.loadVoices();
+      }
     }
   }
+
+  // ── Voice helpers (web only) ──────────────────────────────────────────────
 
   public loadVoices(): SpeechSynthesisVoice[] {
     if (!this.synth) return [];
@@ -18,16 +59,24 @@ class TTSService {
   }
 
   public getVoices(): SpeechSynthesisVoice[] {
-    if (this.voices.length === 0) {
-      this.loadVoices();
-    }
+    if (this.voices.length === 0) this.loadVoices();
     return this.voices;
   }
 
-  public getCategorizedVoices(): { female: SpeechSynthesisVoice[]; male: SpeechSynthesisVoice[]; other: SpeechSynthesisVoice[] } {
+  public getCategorizedVoices(): {
+    female: SpeechSynthesisVoice[];
+    male: SpeechSynthesisVoice[];
+    other: SpeechSynthesisVoice[];
+  } {
     const all = this.getVoices();
-    const femaleKeywords = ['female', 'samantha', 'victoria', 'karen', 'zira', 'hazel', 'susan', 'catherine', 'fiona', 'moira', 'veena', 'google us english female', 'siri', 'ava', 'sora'];
-    const maleKeywords = ['male', 'alex', 'david', 'george', 'daniel', 'mark', 'james', 'fred', 'rishi', 'oliver', 'google us english male', 'tom'];
+    const femaleKeywords = [
+      'female', 'samantha', 'victoria', 'karen', 'zira', 'hazel', 'susan',
+      'catherine', 'fiona', 'moira', 'veena', 'siri', 'ava', 'sora',
+    ];
+    const maleKeywords = [
+      'male', 'alex', 'david', 'george', 'daniel', 'mark', 'james', 'fred',
+      'rishi', 'oliver', 'tom',
+    ];
 
     const female: SpeechSynthesisVoice[] = [];
     const male: SpeechSynthesisVoice[] = [];
@@ -35,26 +84,58 @@ class TTSService {
 
     all.forEach(v => {
       const lower = v.name.toLowerCase();
-      if (femaleKeywords.some(k => lower.includes(k))) {
-        female.push(v);
-      } else if (maleKeywords.some(k => lower.includes(k))) {
-        male.push(v);
-      } else {
-        other.push(v);
-      }
+      if (femaleKeywords.some(k => lower.includes(k))) female.push(v);
+      else if (maleKeywords.some(k => lower.includes(k))) male.push(v);
+      else other.push(v);
     });
 
     return { female, male, other };
   }
 
-  public speakText(text: string, options?: { pitch?: number; rate?: number; voiceURI?: string; gender?: 'female' | 'male' | 'system'; onEnd?: () => void }) {
+  // ── Core speak ────────────────────────────────────────────────────────────
+
+  public speakText(
+    text: string,
+    options?: {
+      pitch?: number;
+      rate?: number;
+      voiceURI?: string;
+      gender?: 'female' | 'male' | 'system';
+      onEnd?: () => void;
+    }
+  ) {
+    if (IS_NATIVE) {
+      // Use Android's native TTS engine via our custom Capacitor plugin
+      NativeTTS.speak({
+        text,
+        pitch: options?.pitch ?? 1.0,
+        rate: options?.rate ?? 1.0,
+      })
+        .then(() => {
+          // Native speak resolves immediately after enqueueing the utterance.
+          // The 'ttsCompleted' event fires when Android finishes speaking.
+          // onEnd is handled by the loop listener set up in startAlarmTTSLoop.
+          if (options?.onEnd && !this.isLooping) {
+            // Single non-looping call: listen once for completion
+            NativeTTS.addListener('ttsCompleted', () => {
+              options.onEnd?.();
+            });
+          }
+        })
+        .catch(() => {
+          options?.onEnd?.();
+        });
+      return;
+    }
+
+    // ── Web Speech API fallback ──────────────────────────────────────────────
     if (!this.synth) {
-      if (options?.onEnd) options.onEnd();
+      options?.onEnd?.();
       return;
     }
 
     try {
-      this.synth.cancel(); // Stop any pending speech
+      this.synth.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
       let calculatedPitch = options?.pitch ?? 1.0;
@@ -69,18 +150,20 @@ class TTSService {
       }
 
       if (!utterance.voice && options?.gender) {
-        if (options.gender === 'female') {
-          if (female.length > 0) utterance.voice = female[0];
+        if (options.gender === 'female' && female.length > 0) {
+          utterance.voice = female[0];
           calculatedPitch = Math.max(1.15, calculatedPitch);
-        } else if (options.gender === 'male') {
-          if (male.length > 0) utterance.voice = male[0];
+        } else if (options.gender === 'male' && male.length > 0) {
+          utterance.voice = male[0];
           calculatedPitch = Math.min(0.8, calculatedPitch);
         }
       }
 
       if (!utterance.voice && availableVoices.length > 0) {
-        // Fallback english voice search
-        const preferred = availableVoices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha')));
+        const preferred = availableVoices.find(
+          v => v.lang.startsWith('en') &&
+               (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha'))
+        );
         if (preferred) utterance.voice = preferred;
       }
 
@@ -93,16 +176,52 @@ class TTSService {
 
       this.synth.speak(utterance);
     } catch {
-      if (options?.onEnd) options.onEnd();
+      options?.onEnd?.();
     }
   }
 
-  public startAlarmTTSLoop(templateText: string, name: string, options?: { pitch?: number; rate?: number; voiceURI?: string; gender?: 'female' | 'male' | 'system' }) {
+  // ── Looping alarm TTS ─────────────────────────────────────────────────────
+
+  public startAlarmTTSLoop(
+    templateText: string,
+    name: string,
+    options?: {
+      pitch?: number;
+      rate?: number;
+      voiceURI?: string;
+      gender?: 'female' | 'male' | 'system';
+    }
+  ) {
     this.stopTTS();
     this.isLooping = true;
 
     const formattedText = templateText.replace(/\[Name\]/gi, name || 'Commander');
 
+    if (IS_NATIVE) {
+      // On Android: speak once, then re-speak every time the engine fires 'ttsCompleted'
+      const loopOnNative = () => {
+        if (!this.isLooping) return;
+        NativeTTS.speak({
+          text: formattedText,
+          pitch: options?.pitch ?? 1.0,
+          rate: options?.rate ?? 1.0,
+        }).catch(() => {});
+      };
+
+      // Set up the repeating listener
+      NativeTTS.addListener('ttsCompleted', () => {
+        if (!this.isLooping) return;
+        // Small gap between repetitions
+        this.loopTimeout = window.setTimeout(loopOnNative, 1800);
+      }).then(handle => {
+        this.nativeLoopListener = handle;
+      });
+
+      loopOnNative();
+      return;
+    }
+
+    // Web path
     const speakNext = () => {
       if (!this.isLooping) return;
       this.speakText(formattedText, {
@@ -111,28 +230,37 @@ class TTSService {
           if (this.isLooping) {
             this.loopTimeout = window.setTimeout(speakNext, 1800);
           }
-        }
+        },
       });
     };
 
     speakNext();
   }
 
+  // ── Stop ──────────────────────────────────────────────────────────────────
+
   public stopTTS() {
     this.isLooping = false;
+
     if (this.loopTimeout !== null) {
       clearTimeout(this.loopTimeout);
       this.loopTimeout = null;
     }
-    if (this.synth) {
-      try {
-        this.synth.cancel();
-      } catch {}
+
+    if (this.nativeLoopListener) {
+      this.nativeLoopListener.remove();
+      this.nativeLoopListener = null;
+    }
+
+    if (IS_NATIVE) {
+      NativeTTS.stop().catch(() => {});
+    } else if (this.synth) {
+      try { this.synth.cancel(); } catch {}
     }
   }
 
   public isSupported(): boolean {
-    return !!this.synth;
+    return IS_NATIVE || !!this.synth;
   }
 }
 

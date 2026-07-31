@@ -17,68 +17,48 @@ import { CyberBackground } from './components/CyberBackground';
 
 export default function App() {
   const [alarms, setAlarms] = useState<Alarm[]>(loadAlarmsFromStorage);
-  const [prefs, setPrefs] = useState<UserPreferences>(loadPrefsFromStorage);
+  const [prefs, setPrefs]   = useState<UserPreferences>(loadPrefsFromStorage);
   const [activeTab, setActiveTab] = useState<'clock' | 'voice'>('clock');
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAlarm, setEditingAlarm] = useState<Alarm | null>(null);
-
-  // Alarm Trigger Overlay State
+  const [isModalOpen,   setIsModalOpen]   = useState(false);
+  const [editingAlarm,  setEditingAlarm]  = useState<Alarm | null>(null);
   const [activeTriggerAlarm, setActiveTriggerAlarm] = useState<Alarm | null>(null);
-  const [lastTriggeredKey, setLastTriggeredKey] = useState<string>('');
+  const [lastTriggeredKey,   setLastTriggeredKey]   = useState<string>('');
 
-  // Save changes to local storage
-  useEffect(() => {
-    saveAlarmsToStorage(alarms);
-  }, [alarms]);
+  useEffect(() => { saveAlarmsToStorage(alarms); }, [alarms]);
+  useEffect(() => { savePrefsToStorage(prefs);   }, [prefs]);
 
-  useEffect(() => {
-    savePrefsToStorage(prefs);
-  }, [prefs]);
-
-  // Real-time alarm trigger checker loop
+  // Real-time alarm trigger checker
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
-      const currentHours = String(now.getHours()).padStart(2, '0');
-      const currentMins = String(now.getMinutes()).padStart(2, '0');
-      const timeStr = `${currentHours}:${currentMins}`;
+      const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
       const dayOfWeek = now.getDay();
-      const todayStr = now.toDateString();
+      const todayStr  = now.toDateString();
 
       alarms.forEach(alarm => {
         if (alarm.enabled && alarm.time === timeStr && alarm.days.includes(dayOfWeek)) {
-          const triggerKey = `${alarm.id}_${timeStr}_${todayStr}`;
-          if (lastTriggeredKey !== triggerKey && !activeTriggerAlarm) {
-            setLastTriggeredKey(triggerKey);
+          const key = `${alarm.id}_${timeStr}_${todayStr}`;
+          if (lastTriggeredKey !== key && !activeTriggerAlarm) {
+            setLastTriggeredKey(key);
             setActiveTriggerAlarm(alarm);
           }
         }
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, [alarms, lastTriggeredKey, activeTriggerAlarm]);
 
-  // Handlers for Alarms
-  const handleToggleAlarm = (id: string) => {
-    setAlarms(prev =>
-      prev.map(a => (a.id === id ? { ...a, enabled: !a.enabled } : a))
-    );
-  };
+  const handleToggleAlarm = (id: string) =>
+    setAlarms(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
 
-  const handleDeleteAlarm = (id: string) => {
+  const handleDeleteAlarm = (id: string) =>
     setAlarms(prev => prev.filter(a => a.id !== id));
-  };
 
-  const handleSaveAlarm = (savedAlarm: Alarm) => {
+  const handleSaveAlarm = (saved: Alarm) => {
     setAlarms(prev => {
-      const exists = prev.some(a => a.id === savedAlarm.id);
-      if (exists) {
-        return prev.map(a => (a.id === savedAlarm.id ? savedAlarm : a));
-      }
-      return [...prev, savedAlarm];
+      const exists = prev.some(a => a.id === saved.id);
+      return exists ? prev.map(a => a.id === saved.id ? saved : a) : [...prev, saved];
     });
     setIsModalOpen(false);
     setEditingAlarm(null);
@@ -91,11 +71,11 @@ export default function App() {
       title,
       enabled: true,
       days: [0, 1, 2, 3, 4, 5, 6],
-      userName: prefs.commanderName || 'Commander',
-      voiceGreeting: 'Good morning [Name]. Wake up protocol Delta activated.',
+      userName: prefs.commanderName || 'Anshif',
+      voiceGreeting: 'Good morning [Name]. Wake up, time to start your day!',
       voicePitch: 0.9,
       voiceRate: 1.0,
-      soundTone: 'cyber_pulse',
+      soundTone: 'samsung_horizon',
       volume: 0.85,
       challenge: 'biometric',
       challengeDifficulty: 'medium',
@@ -104,14 +84,11 @@ export default function App() {
     setAlarms(prev => [...prev, newAlarm]);
   };
 
-  const handleSnooze = (customSnoozeMinutes: number = 5) => {
+  const handleSnooze = (customSnoozeMinutes = 5) => {
     if (!activeTriggerAlarm) return;
     const now = new Date();
     now.setMinutes(now.getMinutes() + customSnoozeMinutes);
-    const h = String(now.getHours()).padStart(2, '0');
-    const m = String(now.getMinutes()).padStart(2, '0');
-    const snoozedTime = `${h}:${m}`;
-
+    const snoozedTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     handleQuickAddAlarm(snoozedTime, `Snoozed (${customSnoozeMinutes}m): ${activeTriggerAlarm.title}`);
     setActiveTriggerAlarm(null);
   };
@@ -120,19 +97,16 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col font-sans relative overflow-x-hidden transition-colors duration-300 ${
-      isDarkMode 
-        ? 'bg-[#050811] text-slate-100 selection:bg-cyan-500 selection:text-slate-950' 
+      isDarkMode
+        ? 'bg-[#050811] text-slate-100 selection:bg-cyan-500 selection:text-slate-950'
         : 'bg-slate-50 text-slate-900 selection:bg-cyan-600 selection:text-white'
     }`}>
-      {/* High-Graphics Live Particle Canvas Background */}
       <CyberBackground isDarkMode={isDarkMode} />
 
-      {/* Scanline Overlay Effect */}
       {prefs.scanlineEffect && isDarkMode && (
         <div className="fixed inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%)] bg-[length:100%_4px] pointer-events-none z-40 opacity-20" />
       )}
 
-      {/* Main App Header */}
       <CyberHeader
         prefs={prefs}
         onUpdatePrefs={setPrefs}
@@ -141,59 +115,41 @@ export default function App() {
         activeAlarmCount={alarms.filter(a => a.enabled).length}
       />
 
-      {/* Main Content Body */}
       <main className="flex-1 pb-16 z-10 relative">
         {activeTab === 'clock' && (
           <div className="space-y-6">
             <MainClock
               alarms={alarms}
               prefs={prefs}
-              onOpenCreateModal={() => {
-                setEditingAlarm(null);
-                setIsModalOpen(true);
-              }}
+              onOpenCreateModal={() => { setEditingAlarm(null); setIsModalOpen(true); }}
               onTriggerTestAlarm={alarm => setActiveTriggerAlarm(alarm)}
             />
             <AlarmList
               alarms={alarms}
               prefs={prefs}
               onToggleAlarm={handleToggleAlarm}
-              onEditAlarm={alarm => {
-                setEditingAlarm(alarm);
-                setIsModalOpen(true);
-              }}
+              onEditAlarm={alarm => { setEditingAlarm(alarm); setIsModalOpen(true); }}
               onDeleteAlarm={handleDeleteAlarm}
-              onOpenCreateModal={() => {
-                setEditingAlarm(null);
-                setIsModalOpen(true);
-              }}
+              onOpenCreateModal={() => { setEditingAlarm(null); setIsModalOpen(true); }}
               onTriggerTestAlarm={alarm => setActiveTriggerAlarm(alarm)}
             />
           </div>
         )}
 
         {activeTab === 'voice' && (
-          <NameVoiceSettings
-            prefs={prefs}
-            onUpdatePrefs={setPrefs}
-          />
+          <NameVoiceSettings prefs={prefs} onUpdatePrefs={setPrefs} />
         )}
       </main>
 
-      {/* Create / Edit Alarm Modal */}
       {isModalOpen && (
         <AlarmModal
           alarm={editingAlarm}
-          commanderName={prefs.commanderName}
+          userName={prefs.commanderName}
           onSave={handleSaveAlarm}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingAlarm(null);
-          }}
+          onClose={() => { setIsModalOpen(false); setEditingAlarm(null); }}
         />
       )}
 
-      {/* Fullscreen Active Alarm Trigger Overlay */}
       {activeTriggerAlarm && (
         <AlarmTriggerOverlay
           alarm={activeTriggerAlarm}

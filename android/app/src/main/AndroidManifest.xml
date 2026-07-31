@@ -36,6 +36,14 @@
     </application>
 
     <!-- Permissions -->
-
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Needed to read audio files picked from device storage -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- Android 13+ scoped media permission for audio files -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Allow setting alarm volume via AudioManager -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
 </manifest>
