@@ -14,6 +14,7 @@ export const NameVoiceSettings: React.FC<NameVoiceSettingsProps> = ({ prefs, onU
   const [selectedVoiceURI, setSelectedVoiceURI] = useState(prefs.selectedVoiceURI || '');
   const [voiceGender,     setVoiceGender]    = useState<VoiceGender>(prefs.voiceGender || 'female');
   const [militaryTime,    setMilitaryTime]   = useState(prefs.militaryTime ?? false);
+  const [ttsEnabled,      setTtsEnabled]     = useState(prefs.ttsEnabled ?? true);
   const [categorized, setCategorized] = useState<{
     female: SpeechSynthesisVoice[];
     male:   SpeechSynthesisVoice[];
@@ -49,6 +50,7 @@ export const NameVoiceSettings: React.FC<NameVoiceSettingsProps> = ({ prefs, onU
       selectedVoiceURI,
       voiceGender,
       militaryTime,
+      ttsEnabled,
     });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
@@ -223,6 +225,41 @@ export const NameVoiceSettings: React.FC<NameVoiceSettingsProps> = ({ prefs, onU
             }`}
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${militaryTime ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
+        {/* Voice Announcement Toggle */}
+        <div className={`flex items-center justify-between p-4 rounded-2xl border ${
+          isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-100 border-slate-200'
+        }`}>
+          <div>
+            <div className={`text-xs font-bold font-mono ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}>
+              VOICE ANNOUNCEMENT
+            </div>
+            <div className={`text-[11px] font-mono ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-600'
+            }`}>
+              Enable or disable spoken alarm messages.
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              audioSynth.playUiClick();
+              setTtsEnabled(!ttsEnabled);
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+              ttsEnabled ? 'bg-cyan-500' : (isDarkMode ? 'bg-slate-800' : 'bg-slate-300')
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                ttsEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
           </button>
         </div>
 
