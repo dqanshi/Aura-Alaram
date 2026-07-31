@@ -68,7 +68,7 @@ export const AmbientNoiseGenerator: React.FC = () => {
         </div>
         <h2 className="text-xl font-bold font-mono text-white">SPACE SLEEP SOUND MACHINE</h2>
         <p className="text-xs text-slate-400 font-mono">
-          Procedurally generated background soundscapes for deep sleep & focus. 100% offline.
+          Procedurally generated background soundscapes for deep sleep & focus. 100% .
         </p>
       </div>
 

@@ -8,7 +8,7 @@ export const FlutterExportTab: React.FC = () => {
 
   const files: Record<string, string> = {
     'pubspec.yaml': `name: aura_futuristic_alarm
-description: "A futuristic offline Flutter Android alarm clock app with custom wake-up phrase recording, smart snooze, and pre-cached offline weather."
+description: "A futuristic  Flutter Android alarm clock app with custom wake-up phrase recording, smart snooze, and pre-cached  weather."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -152,7 +152,7 @@ class SmartSnoozeService {
 }
 `,
 
-    'lib/services/offline_weather_service.dart': `class OfflineWeatherService {
+    'lib/services/_weather_service.dart': `class OfflineWeatherService {
   static Map<String, dynamic> getCachedWeatherData(String location) {
     return {
       'location': location.isEmpty ? 'Neo Tokyo Grid Alpha' : location,
@@ -223,7 +223,7 @@ class SmartSnoozeService {
 import '../models/alarm.dart';
 import '../services/tts_service.dart';
 import '../services/voice_recorder_service.dart';
-import '../services/offline_weather_service.dart';
+import '../services/_weather_service.dart';
 
 class AlarmTriggerScreen extends StatefulWidget {
   final Alarm alarm;
@@ -391,7 +391,7 @@ class _AlarmTriggerScreenState extends State<AlarmTriggerScreen> {
         </div>
         <h2 className="text-xl font-bold font-mono text-white">NATIVE FLUTTER ANDROID CODE REPOSITORY</h2>
         <p className="text-xs text-slate-400 font-mono">
-          Full offline Flutter Dart codebase with Custom Recorded Voice, Smart Snooze, and Pre-cached Weather forecast.
+          Full  Flutter Dart codebase with Custom Recorded Voice, Smart Snooze, and Pre-cached Weather forecast.
         </p>
       </div>
 

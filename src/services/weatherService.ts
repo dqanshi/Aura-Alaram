@@ -1,6 +1,6 @@
 import { OfflineWeatherData } from '../types';
 
-const STORAGE_KEY_WEATHER = 'aura_offline_weather_v1';
+const STORAGE_KEY_WEATHER = 'aura__weather_v1';
 
 const DEFAULT_WEATHER: OfflineWeatherData = {
   location: 'Neo Tokyo Grid Alpha',
@@ -30,7 +30,7 @@ export const saveOfflineWeather = (data: OfflineWeatherData) => {
   } catch {}
 };
 
-// Generate procedural realistic/cybernetic offline forecast based on location string
+// Generate procedural realistic/cybernetic  forecast based on location string
 export const generateProceduralWeather = (locationName: string): OfflineWeatherData => {
   const seed = locationName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const tempC = 12 + (seed % 20);

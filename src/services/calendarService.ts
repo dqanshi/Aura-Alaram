@@ -1,6 +1,6 @@
 import { CalendarEvent } from '../types';
 
-const STORAGE_KEY_CALENDAR = 'aura_offline_calendar_v1';
+const STORAGE_KEY_CALENDAR = 'aura__calendar_v1';
 
 const DEFAULT_EVENTS: CalendarEvent[] = [
   { id: 'evt_1', title: 'Orbital Tech Briefing', time: '09:00', location: 'Command Deck A' },

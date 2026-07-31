@@ -3,7 +3,7 @@
  *
  * On Android (Capacitor native app) we call the custom TTSPlugin we registered
  * in MainActivity.java — it uses Android's built-in TextToSpeech engine, which
- * works 100 % offline and never silently fails in a WebView the way the
+ * works 100 %  and never silently fails in a WebView the way the
  * Web Speech API often does.
  *
  * On the web / browser preview we fall back to window.speechSynthesis as before.
