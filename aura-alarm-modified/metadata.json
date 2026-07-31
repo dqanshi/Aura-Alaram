@@ -1,0 +1,6 @@
+{
+  "name": "AURA - Futuristic Offline Alarm Protocol",
+  "description": "An offline futuristic alarm clock with TTS personalized name calling, procedural audio synthesis, multi-stage wake protocols, sleep cycle calculator, ambient noise generator, and dark cyber HUD.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
