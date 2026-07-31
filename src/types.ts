@@ -87,6 +87,7 @@ export interface UserPreferences {
   selectedVoiceURI: string;
   voiceGender?: VoiceGender;
   militaryTime: boolean;
+  ttsEnabled?: boolean;
   darkMode?: boolean;
   scanlineEffect: boolean;
   ambientVolume: number;
