@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Alarm } from '../types';
+import { Alarm, UserPreferences } from '../types';
 import {
   Volume2, ShieldAlert, Sparkles, CheckCircle2, RotateCcw,
   Zap, Brain, Fingerprint, Mic, CloudSun, Calendar, XCircle,
@@ -14,12 +14,14 @@ import confetti from 'canvas-confetti';
 
 interface AlarmTriggerOverlayProps {
   alarm: Alarm;
+  prefs?: UserPreferences;
   onDismiss: () => void;
   onSnooze: (customSnoozeMinutes?: number) => void;
 }
 
 export const AlarmTriggerOverlay: React.FC<AlarmTriggerOverlayProps> = ({
   alarm,
+  prefs,
   onDismiss,
   onSnooze,
 }) => {
@@ -65,7 +67,7 @@ export const AlarmTriggerOverlay: React.FC<AlarmTriggerOverlayProps> = ({
         stopCustomAudio = voiceRecorder.playAudioDataUrl(alarm.customAudioDataUrl!, () => playLoop());
       };
       playLoop();
-    } else {
+    } else if (prefs?.ttsEnabled ?? true) {
       ttsService.startAlarmTTSLoop(alarm.voiceGreeting, alarm.userName || 'Anshif', {
         gender: alarm.voiceGender,
         pitch:  alarm.voicePitch,
@@ -90,7 +92,7 @@ export const AlarmTriggerOverlay: React.FC<AlarmTriggerOverlayProps> = ({
       if (stopCustomAudio) stopCustomAudio();
       voiceRecorder.stopPlayback();
     };
-  }, [alarm]);
+  }, [alarm, prefs]);
 
   // ── Snooze ────────────────────────────────────────────────────────────────
 
