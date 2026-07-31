@@ -7,6 +7,7 @@ const DEFAULT_PREFS: UserPreferences = {
   commanderName: 'Anshif',
   selectedVoiceURI: '',
   militaryTime: false,
+  ttsEnabled: true,
   darkMode: true,
   scanlineEffect: true,
   ambientVolume: 0.6,
